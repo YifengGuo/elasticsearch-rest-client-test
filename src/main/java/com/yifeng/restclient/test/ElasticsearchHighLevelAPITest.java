@@ -97,5 +97,7 @@ public class ElasticsearchHighLevelAPITest {
         JSONObject version = obj.getJSONObject("version");
         String versionNumber = version.getString("number");
         System.out.print(versionNumber);
+
+        // some changes in test branch
     }
 }
