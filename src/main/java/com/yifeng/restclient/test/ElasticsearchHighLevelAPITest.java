@@ -13,6 +13,8 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 import org.apache.lucene.search.BooleanQuery;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
 import org.elasticsearch.action.admin.indices.get.GetIndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
@@ -189,6 +191,12 @@ public class ElasticsearchHighLevelAPITest {
         for (String s : indicesArr) {
             System.out.println(s);
         }
+    }
+
+    @Test
+    public void testClusterHealthAPI() throws IOException {
+        ClusterHealthResponse response = restClient.cluster().health(new ClusterHealthRequest(), RequestOptions.DEFAULT);
+        System.out.println(response.getNumberOfNodes());
     }
 
     @After
