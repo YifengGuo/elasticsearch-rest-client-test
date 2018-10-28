@@ -17,10 +17,14 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
 import org.elasticsearch.action.admin.indices.get.GetIndexResponse;
+import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
+import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchScrollRequest;
 import org.elasticsearch.client.*;
+import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.Scroll;
@@ -197,6 +201,24 @@ public class ElasticsearchHighLevelAPITest {
     public void testClusterHealthAPI() throws IOException {
         ClusterHealthResponse response = restClient.cluster().health(new ClusterHealthRequest(), RequestOptions.DEFAULT);
         System.out.println(response.getNumberOfNodes());
+    }
+
+    @Test
+    // get _mapping of es index
+    public void testGetMappingAPI() throws IOException {
+        GetMappingsResponse getMappingsResponse = restClient
+                .indices()
+                .getMapping(new GetMappingsRequest()
+                        .indices("ueba_settings").types("user_info"), RequestOptions.DEFAULT);
+        Iterator<ImmutableOpenMap<String, MappingMetaData>> it = getMappingsResponse.mappings().valuesIt();
+        while (it.hasNext()) {
+            ImmutableOpenMap<String, MappingMetaData> cur = it.next();
+            MappingMetaData mappingMetaData = cur.get("user_info");
+            Map<String, Object> propertiesMap = (Map) mappingMetaData.getSourceAsMap().get("properties");
+            propertiesMap.forEach((k, v) -> {
+                System.out.println(k + " " + v);
+            });
+        }
     }
 
     @After
