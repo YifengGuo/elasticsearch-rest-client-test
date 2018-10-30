@@ -2,6 +2,7 @@ package com.yifeng.restclient.test;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.fasterxml.jackson.core.JsonFactory;
 import com.yifeng.restclient.config.AggregationRequestGenerator;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
@@ -25,19 +26,24 @@ import org.elasticsearch.action.search.SearchScrollRequest;
 import org.elasticsearch.client.*;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.json.JsonXContentParser;
+import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.RangeQueryBuilder;
 import org.elasticsearch.search.Scroll;
 import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.aggregations.Aggregation;
-import org.elasticsearch.search.aggregations.AggregationBuilder;
-import org.elasticsearch.search.aggregations.AggregationBuilders;
-import org.elasticsearch.search.aggregations.InternalAggregation;
+import org.elasticsearch.search.SearchModule;
+import org.elasticsearch.search.aggregations.*;
+import org.elasticsearch.search.aggregations.bucket.terms.IncludeExclude;
 import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.elasticsearch.search.aggregations.metrics.avg.AvgAggregationBuilder;
 import org.elasticsearch.search.aggregations.metrics.avg.InternalAvg;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -49,6 +55,7 @@ import java.util.*;
 
 import static com.yifeng.restclient.config.DatasourceConstant.*;
 import static org.elasticsearch.index.query.QueryBuilders.boolQuery;
+import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
 import static org.elasticsearch.index.query.QueryBuilders.matchQuery;
 
 /**
@@ -219,6 +226,122 @@ public class ElasticsearchHighLevelAPITest {
                 System.out.println(k + " " + v);
             });
         }
+    }
+
+    @Test
+    public void testGetAvgScore() throws Exception {
+        String query1 = "{\"from\":0,\"size\":0,\"aggregations\":{\"AVG(score)\":{\"avg\":{\"field\":\"score\"}}}}";
+        String query2 = AggregationRequestGenerator.simpleAvgAggregation(0, 0, "score");
+        Request request1 = new Request("POST", "/ueba_alarm/anomaly_scenarios/_search");
+        request1.setEntity(new StringEntity(query1));
+        Response response1 = restClient.getLowLevelClient().performRequest(request1);
+
+        HttpEntity httpEntity1 = response1.getEntity();
+        JSONObject res1 = JSON.parseObject(EntityUtils.toString(httpEntity1, "utf-8"));
+
+        Thread.sleep(5000);
+//
+//        System.out.println(query2);
+        Request request2 = new Request("POST", "/ueba_alarm/anomaly_scenarios/_search");
+        request2.setEntity(new StringEntity(query2));
+        Response response2 = restClient.getLowLevelClient().performRequest(request2);
+
+        HttpEntity httpEntity2 = response2.getEntity();
+        JSONObject res2 = JSON.parseObject(EntityUtils.toString(httpEntity2, "utf-8"));
+
+        Assert.assertEquals(res1, res2);
+
+    }
+
+    @Test
+    public void testTimerangeAgg() throws Exception {
+        String query = AggregationRequestGenerator.metricsAggregationWithTimerange(0, 10, "termAgg", "terms", "user_name", 10, "occur_time", 1530400200000L, 1539334992074L);
+        System.out.println(query);
+//        String query = "{\"from\":0,\"size\":10,\"query\":{\"bool\":{\"must\":{\"bool\":{\"must\":[{\"range\":{\"occur_time\":{\"from\":1530400200000,\"to\":null,\"include_lower\":true,\"include_upper\":true}}},{\"range\":{\"occur_time\":{\"from\":null,\"to\":1539334992074,\"include_lower\":true,\"include_upper\":true}}}]}}}},\"aggregations\":{\"user_name\":{\"terms\":{\"field\":\"user_name\",\"size\":10}}}}";
+        Request request = new Request("POST", "/ueba_alarm/anomaly_scenarios/_search");
+        request.setEntity(new StringEntity(query));
+        Response response = restClient.getLowLevelClient().performRequest(request);
+
+        HttpEntity httpEntity = response.getEntity();
+        System.out.print(EntityUtils.toString(httpEntity, "utf-8"));
+    }
+
+    @Test
+    public void testTimerangeAggWithQuery() throws Exception {
+        String query = AggregationRequestGenerator.metricsAggregationWithTimerange(0, 0 ,  "termAgg", "terms", "user_name",
+                0, "occur_time", 1530400200000L, 1539334992074L,
+                "entity_config_id", false);
+        System.out.println(query);
+        Request request = new Request("POST", "/ueba_alarm/anomaly_scenarios/_search");
+        request.setEntity(new StringEntity(query));
+        Response response = restClient.getLowLevelClient().performRequest(request);
+
+        HttpEntity httpEntity = response.getEntity();
+        JSONObject res = JSON.parseObject(EntityUtils.toString(httpEntity, "utf-8"));
+        System.out.print(res);
+    }
+
+    @Test
+    public void testCardinalityAgg() throws Exception {
+        String  query = AggregationRequestGenerator.metricsAggregationWithTimerange(0, 0 ,  "cardinalityAgg", "cardinality", "user_name",
+                0, "occur_time", 1530400200000L, 1539334992074L);
+        System.out.println(query);
+        Request request = new Request("POST", "/ueba_alarm/_search");
+        request.setEntity(new StringEntity(query));
+        Response response = restClient.getLowLevelClient().performRequest(request);
+
+        HttpEntity httpEntity = response.getEntity();
+        JSONObject res = JSON.parseObject(EntityUtils.toString(httpEntity, "utf-8"));
+        Map<String, Long> map = new HashMap<>();
+        long cardinality = (long) res.getJSONObject("aggregations").getJSONObject("cardinalityAgg").getLong("value");
+        long total = (long) res.getJSONObject("hits").getLong("total");
+        map.put("total", total);
+        map.put("cardinality", cardinality);
+        System.out.println(res);
+        map.forEach((k, v) -> {
+            System.out.println(k + " " + v);
+        });
+    }
+
+    @Test
+    public void testTermAggOrder() throws Exception {
+        String query = AggregationRequestGenerator.metricsAggregationWithTimerange(0, 0, "field_value", "terms",
+                "user_name", 5, "occur_time", 1530400200000L, 1539334992074L, "_count", "desc");
+        System.out.println(query);
+        Request request = new Request("POST", "/ueba_alarm/_search");
+        request.setEntity(new StringEntity(query));
+        Response response = restClient.getLowLevelClient().performRequest(request);
+
+        HttpEntity httpEntity = response.getEntity();
+        JSONObject res = JSON.parseObject(EntityUtils.toString(httpEntity, "utf-8"));
+        System.out.println(res);
+    }
+
+    @Test
+    public void testQuery() throws Exception {
+        QueryBuilder qb = QueryBuilders.rangeQuery("occur_time").to(1539334992074L).from(1530400200000L);
+        System.out.println(((RangeQueryBuilder) qb).toString());
+
+        AggregationBuilder aggregationBuilder = AggregationBuilders
+                .dateHistogram("period")
+                .field("occur_time")
+                .interval(1000) // vary based on user's setting
+                .subAggregation(AggregationBuilders
+                        .terms("agg")
+                        .includeExclude(new IncludeExclude(new String[]{"PC-8371"}, null))// only aggregate items appeard on the top_x list
+                        .order(BucketOrder.count(false))  // sort the users bucket to descending order
+                        .field("user_name")
+                        .size(5));
+        System.out.println(aggregationBuilder.toString());
+        String query = AggregationRequestGenerator.generate(0, 0, aggregationBuilder.toString(), qb.toString());
+        System.out.println(query);
+        Request request = new Request("POST", "/ueba_alarm/_search");
+        request.setEntity(new StringEntity(query));
+        Response response = restClient.getLowLevelClient().performRequest(request);
+
+        HttpEntity httpEntity = response.getEntity();
+        JSONObject res = JSON.parseObject(EntityUtils.toString(httpEntity, "utf-8"));
+        System.out.println(res);
     }
 
     @After
