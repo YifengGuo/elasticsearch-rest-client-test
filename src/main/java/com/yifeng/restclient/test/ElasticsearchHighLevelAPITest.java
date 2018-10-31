@@ -41,6 +41,7 @@ import org.elasticsearch.search.aggregations.bucket.terms.IncludeExclude;
 import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.elasticsearch.search.aggregations.metrics.avg.AvgAggregationBuilder;
 import org.elasticsearch.search.aggregations.metrics.avg.InternalAvg;
+import org.elasticsearch.search.aggregations.metrics.tophits.TopHitsAggregationBuilder;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.junit.After;
 import org.junit.Assert;
@@ -321,27 +322,52 @@ public class ElasticsearchHighLevelAPITest {
     public void testQuery() throws Exception {
         QueryBuilder qb = QueryBuilders.rangeQuery("occur_time").to(1539334992074L).from(1530400200000L);
         System.out.println(((RangeQueryBuilder) qb).toString());
+        System.out.println(JSONObject.parseObject(qb.toString()));
+    }
 
-        AggregationBuilder aggregationBuilder = AggregationBuilders
-                .dateHistogram("period")
-                .field("occur_time")
-                .interval(1000) // vary based on user's setting
-                .subAggregation(AggregationBuilders
-                        .terms("agg")
-                        .includeExclude(new IncludeExclude(new String[]{"PC-8371"}, null))// only aggregate items appeard on the top_x list
-                        .order(BucketOrder.count(false))  // sort the users bucket to descending order
-                        .field("user_name")
-                        .size(5));
-        System.out.println(aggregationBuilder.toString());
-        String query = AggregationRequestGenerator.generate(0, 0, aggregationBuilder.toString(), qb.toString());
-        System.out.println(query);
-        Request request = new Request("POST", "/ueba_alarm/_search");
-        request.setEntity(new StringEntity(query));
+    @Test
+    public void general() throws Exception {
+        String field = "user";
+        int bucketSize = 5;
+        String orderBy = "_count";
+        String order = "desc";
+        String[] includes = {"azh0595",
+                "bcv0304",
+                "ccm0822",
+                "clr0460",
+                "csc0581"};
+        String[] excludes = {};
+        JSONObject termsAgg = AggregationRequestGenerator.getTermsAgg(field, bucketSize, orderBy, order, includes, excludes);
+
+        QueryBuilder qb = QueryBuilders.rangeQuery("occur_time").to(1535527697000L).from(1533108497000L);
+        JSONObject query  = AggregationRequestGenerator.getQuery(qb);
+
+        JSONObject dateAgg = AggregationRequestGenerator.getDateHistAgg("occur_time", "1d", "userCount", termsAgg);
+
+        String res = AggregationRequestGenerator.dateHistogramAggregation(0, 0, query, "period", dateAgg);
+        System.out.println(res);
+
+        Request request = new Request("POST", "/saas_*/email/_search");
+        request.setEntity(new StringEntity(res));
         Response response = restClient.getLowLevelClient().performRequest(request);
 
         HttpEntity httpEntity = response.getEntity();
-        JSONObject res = JSON.parseObject(EntityUtils.toString(httpEntity, "utf-8"));
-        System.out.println(res);
+        JSONObject result = JSON.parseObject(EntityUtils.toString(httpEntity, "utf-8"));
+        System.out.println(result);
+
+    }
+
+    @Test
+    public void testTopHits() {
+//        TopHitsAggregationBuilder topHitsBuilder = AggregationBuilders.topHits("tophit_userid")
+//                .fetchSource(true)
+//                .size(1);
+//        System.out.println(topHitsBuilder.toString());
+        QueryBuilder q = QueryBuilders.matchAllQuery();
+        JSONObject qb = AggregationRequestGenerator.getQuery(q);
+        JSONObject topHits = AggregationRequestGenerator.getTopHitsAgg(0, 1, true);
+        String query = AggregationRequestGenerator.userControllerAgg(0, 0, "user_id", 50000, "activity", "tophit_userid", topHits, qb);
+        System.out.println(query);
     }
 
     @After
