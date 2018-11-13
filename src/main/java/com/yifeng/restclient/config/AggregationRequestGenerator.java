@@ -209,11 +209,13 @@ public class AggregationRequestGenerator {
         // add this query based on boolean value
         if (isExisted) {
             JSONObject obj3 = new JSONObject();
+            JSONObject bool = new JSONObject();
             JSONObject mustNot = new JSONObject();
             JSONObject missing = new JSONObject();
             missing.put("field", flagField);
             mustNot.put("missing", missing);
-            obj3.put("bool", mustNot);
+            bool.put("must_not", mustNot);
+            obj3.put("bool", bool);
             innerMust.add(obj3);
         } else {
             JSONObject obj3 = new JSONObject();
@@ -466,5 +468,21 @@ public class AggregationRequestGenerator {
         res.put("aggregations", aggregations);
 
         return JSON.toJSONString(res);
+    }
+
+
+    // get single value aggregation request json including max, min, avg...
+    public static JSONObject getSingleValueAggregation(int from, int hitSize, String aggName, String aggType, String field) {
+        JSONObject res = new JSONObject();
+        res.put("from", from);
+        res.put("size", hitSize);
+        JSONObject aggregations = new JSONObject();
+        JSONObject name = new JSONObject();
+        JSONObject type = new JSONObject();
+        type.put("field", field);
+        name.put(aggType, type);
+        aggregations.put(aggName, name);
+        res.put("aggregations", aggregations);
+        return res;
     }
 }
