@@ -569,6 +569,12 @@ public class ElasticsearchHighLevelAPITest {
         System.out.println(response.getHits().getHits()[0].getSourceAsMap());
     }
 
+    @Test
+    public void testQueryStringQuery() throws Exception {
+        QueryBuilder qb = QueryBuilders.queryStringQuery("_exists_:scenarios_top3");
+        System.out.println(qb);
+    }
+
     @After
     public void close() throws IOException {
         lowClient.close();
