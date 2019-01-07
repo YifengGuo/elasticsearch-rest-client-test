@@ -84,7 +84,7 @@ public class ElasticsearchHighLevelAPITest {
     @Before
     public void initial() {
         lowClient =  RestClient.builder(
-                new HttpHost("172.16.150.149", 39200, "http")).build();
+                new HttpHost("172.16.150.189", 29200, "http")).build();
         restClient = new RestHighLevelClient(lowClient);
     }
 
@@ -468,22 +468,26 @@ public class ElasticsearchHighLevelAPITest {
 
     @Test
     public void deleteDocuments() throws IOException {
-        SearchResponse response = restClient.search(new SearchRequest("ueba_alarm")
+        QueryBuilder qb = QueryBuilders.boolQuery().must(QueryBuilders.matchQuery("user_name", "quanwu2"))
+                .must(rangeQuery("occur_time").gte(1541030400000L));
+//        QueryBuilder qb = QueryBuilders.matchAllQuery();
+        SearchResponse response = restClient.search(new SearchRequest("event_*").types("event")
         .scroll(new Scroll(TimeValue.timeValueMillis(60000L)))
         .source(new SearchSourceBuilder()
-            .query(matchAllQuery())
+            .query(qb)
             .size(10000)));
-        while (true) {
-            BulkRequest bulkRequest = new BulkRequest();
-            for (SearchHit hit : response.getHits().getHits()) {
-                bulkRequest.add(new DeleteRequest("ueba_alarm").type(hit.getType()).id(hit.getId()));
-            }
-            restClient.bulk(bulkRequest);
-            response = restClient.searchScroll(new SearchScrollRequest(response.getScrollId()).scroll(TimeValue.timeValueMillis(60000L)));
-            if (response.getHits().getHits().length == 0) {
-                break;
-            }
-        }
+        System.out.println(response.getHits().getTotalHits());
+//        while (true) {
+//            BulkRequest bulkRequest = new BulkRequest();
+//            for (SearchHit hit : response.getHits().getHits()) {
+//                bulkRequest.add(new DeleteRequest("event_20190105").type(hit.getType()).id(hit.getId()));
+//            }
+//            restClient.bulk(bulkRequest);
+//            response = restClient.searchScroll(new SearchScrollRequest(response.getScrollId()).scroll(TimeValue.timeValueMillis(60000L)));
+//            if (response.getHits().getHits().length == 0) {
+//                break;
+//            }
+//        }
         System.out.println("deletion complete");
     }
 

@@ -3,12 +3,11 @@ package com.yifeng.restclient.config;
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.client.sniff.Sniffer;
 import org.elasticsearch.common.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.text.SimpleDateFormat;
@@ -20,7 +19,7 @@ import java.util.regex.Pattern;
 /**
  * @author Justin Wan justinxcwan@gmail.com
  */
-public class ElasticsearchConnection {
+public class ElasticsearchConnection implements Closeable {
     protected SimpleDateFormat indicesPattern;
     protected String indices;
     // Most likely to be daily or weekly
@@ -28,7 +27,10 @@ public class ElasticsearchConnection {
     protected String[] types = {"*"};
     protected RestHighLevelClient client;
     protected RestClient lowLevelClient;
-    protected Sniffer sniffer;
+
+    private String connectedHosts; // currently do not consider connecting to multiple hosts cases
+    private int connectedPort;
+    private String connectedHttpSchema;
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticsearchConnection.class);
 
@@ -95,13 +97,32 @@ public class ElasticsearchConnection {
     }
 
     public ElasticsearchConnection connect(String hosts, int port, String httpSchema) throws UnknownHostException {
-        lowLevelClient = RestClient.builder(new HttpHost(hosts, port, httpSchema)).build();
+        lowLevelClient = RestClient.builder(new HttpHost(hosts, port, httpSchema))
+                .setRequestConfigCallback(
+                        requestConfigBuilder -> requestConfigBuilder
+                                // connect timeout while es gc ?
+                                .setConnectTimeout(30_000)
+                                .setSocketTimeout(120_000))
+                .setMaxRetryTimeoutMillis(60_000).build();
+
         client = new RestHighLevelClient(lowLevelClient);
-        sniffer = Sniffer.builder(lowLevelClient).build();
         // cluster name is set in elasticsearch.yml
         // unnecessary to set it again
+        connectedHosts = hosts;
+        connectedPort = port;
+        connectedHttpSchema = httpSchema;
 
         return this;
+    }
+
+    public static ElasticsearchConnection of(String hosts, int port, String httpSchema) {
+        ElasticsearchConnection connection = new ElasticsearchConnection();
+        try {
+            connection.connect(hosts, port, httpSchema);
+        } catch (UnknownHostException e) {
+            LOG.error("Error occurred in initialize es connection. host: {}, port: {}, schema: {}.", hosts, port, httpSchema);
+        }
+        return connection;
     }
 
     /**
@@ -136,11 +157,21 @@ public class ElasticsearchConnection {
         if (client != null) {
             try {
                 lowLevelClient.close();
-                sniffer.close();
             } catch (IOException e) {
                 LOG.error(e.getMessage());
             }
         }
     }
 
+    public String getConnectedHosts() {
+        return connectedHosts;
+    }
+
+    public int getConnectedPort() {
+        return connectedPort;
+    }
+
+    public String getHttpSchema() {
+        return connectedHttpSchema;
+    }
 }
