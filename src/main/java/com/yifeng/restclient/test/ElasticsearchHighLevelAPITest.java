@@ -468,32 +468,35 @@ public class ElasticsearchHighLevelAPITest {
 
     @Test
     public void deleteDocuments() throws IOException {
-        QueryBuilder qb = QueryBuilders.boolQuery().must(QueryBuilders.matchQuery("user_name", "quanwu2"))
-                .must(rangeQuery("occur_time").gte(1541030400000L));
+        QueryBuilder qb = QueryBuilders.boolQuery().must(rangeQuery("score").gt(0));
 //        QueryBuilder qb = QueryBuilders.matchAllQuery();
-        SearchResponse response = restClient.search(new SearchRequest("event_*").types("event")
+        String targetIndex = "ueba_settings";
+        String targetType = "user_info";
+        SearchResponse response = restClient.search(new SearchRequest(targetIndex).types(targetType)
         .scroll(new Scroll(TimeValue.timeValueMillis(60000L)))
         .source(new SearchSourceBuilder()
             .query(qb)
             .size(10000)));
         System.out.println(response.getHits().getTotalHits());
-//        while (true) {
-//            BulkRequest bulkRequest = new BulkRequest();
-//            for (SearchHit hit : response.getHits().getHits()) {
-//                bulkRequest.add(new DeleteRequest("event_20190105").type(hit.getType()).id(hit.getId()));
-//            }
-//            restClient.bulk(bulkRequest);
-//            response = restClient.searchScroll(new SearchScrollRequest(response.getScrollId()).scroll(TimeValue.timeValueMillis(60000L)));
-//            if (response.getHits().getHits().length == 0) {
-//                break;
-//            }
-//        }
+        while (true) {
+            BulkRequest bulkRequest = new BulkRequest();
+            for (SearchHit hit : response.getHits().getHits()) {
+                bulkRequest.add(new DeleteRequest(targetIndex).type(hit.getType()).id(hit.getId()));
+            }
+            restClient.bulk(bulkRequest);
+            response = restClient.searchScroll(new SearchScrollRequest(response.getScrollId()).scroll(TimeValue.timeValueMillis(60000L)));
+            if (response.getHits().getHits().length == 0) {
+                break;
+            }
+        }
         System.out.println("deletion complete");
     }
 
     @Test
-    public void updateFields() {
-
+    public void updateFields() throws IOException {
+        Map<String, Long> map = new HashMap<>();
+        map.put("update_frequency", 86400000L);
+        restClient.update(new UpdateRequest("ueba_settings", "user_config", "AWh4gABIO2i96pokHhma").doc(map).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE));
     }
 
     @Test
