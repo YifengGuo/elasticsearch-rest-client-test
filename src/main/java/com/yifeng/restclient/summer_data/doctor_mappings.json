@@ -1,0 +1,716 @@
+{
+  "yifeng-toy": {
+    "mappings": {
+      "doctor": {
+        "properties": {
+          "avatar": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "big_avatar": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "current_user": {
+            "type": "boolean"
+          },
+          "doctor": {
+            "properties": {
+              "avatar": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "avg_reply_time_str": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "avg_reply_time_v2_str": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "banned": {
+                "type": "boolean"
+              },
+              "big_avatar": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "can_give_emergency_treatment": {
+                "type": "boolean"
+              },
+              "card_url": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "check_expert": {
+                "type": "boolean"
+              },
+              "choice_tag": {
+                "properties": {
+                  "description": {
+                    "type": "text",
+                    "fields": {
+                      "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      }
+                    }
+                  },
+                  "description_name": {
+                    "type": "text",
+                    "fields": {
+                      "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      }
+                    }
+                  },
+                  "name": {
+                    "type": "text",
+                    "fields": {
+                      "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      }
+                    }
+                  }
+                }
+              },
+              "commonly_doctor": {
+                "type": "boolean"
+              },
+              "consult_price_cent": {
+                "type": "long"
+              },
+              "d2d_expert": {
+                "type": "boolean"
+              },
+              "doctor_qualification": {
+                "properties": {
+                  "can_doctor_vip_card": {
+                    "type": "boolean"
+                  },
+                  "can_membership_service": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "doctor_reply_check_grade": {
+                "type": "long"
+              },
+              "drug_supplier_id": {
+                "type": "long"
+              },
+              "drugs_qualified": {
+                "type": "boolean"
+              },
+              "enable_prescription_improve": {
+                "type": "boolean"
+              },
+              "expert": {
+                "type": "boolean"
+              },
+              "faq_casual_count": {
+                "type": "long"
+              },
+              "floor_price": {
+                "type": "long"
+              },
+              "follower_count": {
+                "type": "long"
+              },
+              "hospital_id": {
+                "type": "long"
+              },
+              "hospital_name": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "id": {
+                "type": "long"
+              },
+              "img_text_str": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "intro_thumbnail_url": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "intro_video_url": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "invite_faq_status": {
+                "type": "long"
+              },
+              "is_new_doctor": {
+                "type": "boolean"
+              },
+              "is_volunteer": {
+                "type": "boolean"
+              },
+              "job_title_id": {
+                "type": "long"
+              },
+              "job_title_name": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "list_dis_tags": {
+                "properties": {
+                  "description": {
+                    "type": "text",
+                    "fields": {
+                      "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      }
+                    }
+                  },
+                  "description_name": {
+                    "type": "text",
+                    "fields": {
+                      "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      }
+                    }
+                  },
+                  "name": {
+                    "type": "text",
+                    "fields": {
+                      "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      }
+                    }
+                  }
+                }
+              },
+              "list_operate_tags": {
+                "properties": {
+                  "description": {
+                    "type": "text",
+                    "fields": {
+                      "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      }
+                    }
+                  },
+                  "description_name": {
+                    "type": "text",
+                    "fields": {
+                      "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      }
+                    }
+                  },
+                  "name": {
+                    "type": "text",
+                    "fields": {
+                      "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      }
+                    }
+                  }
+                }
+              },
+              "list_trait_tags": {
+                "properties": {
+                  "description": {
+                    "type": "text",
+                    "fields": {
+                      "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      }
+                    }
+                  },
+                  "description_name": {
+                    "type": "text",
+                    "fields": {
+                      "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      }
+                    }
+                  },
+                  "name": {
+                    "type": "text",
+                    "fields": {
+                      "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      }
+                    }
+                  }
+                }
+              },
+              "location": {
+                "type": "long"
+              },
+              "location_name": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "make_call_permission": {
+                "type": "long"
+              },
+              "make_call_price": {
+                "type": "long"
+              },
+              "make_call_price_str": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "make_call_status": {
+                "type": "long"
+              },
+              "make_call_status_str": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "make_call_str": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "make_call_time_str": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "marking_tags": {
+                "properties": {
+                  "description": {
+                    "type": "text",
+                    "fields": {
+                      "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      }
+                    }
+                  },
+                  "description_name": {
+                    "type": "text",
+                    "fields": {
+                      "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      }
+                    }
+                  },
+                  "name": {
+                    "type": "text",
+                    "fields": {
+                      "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      }
+                    }
+                  }
+                }
+              },
+              "mdt": {
+                "type": "boolean"
+              },
+              "membership_for_doctor": {
+                "properties": {
+                  "membership_available": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "new_doctor": {
+                "type": "boolean"
+              },
+              "new_user_price": {
+                "type": "long"
+              },
+              "newcomer_price": {
+                "type": "long"
+              },
+              "newcomer_price_str": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "nickname": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "pass_test": {
+                "type": "boolean"
+              },
+              "permanent_scene_url": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "prescription_count": {
+                "type": "long"
+              },
+              "prescription_qualified": {
+                "type": "boolean"
+              },
+              "profile_url": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "recom_price": {
+                "type": "long"
+              },
+              "recommend_comment": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "record_in_yinchuan": {
+                "type": "boolean"
+              },
+              "reply_count": {
+                "type": "long"
+              },
+              "reply_user_count": {
+                "type": "long"
+              },
+              "reward_base": {
+                "type": "long"
+              },
+              "reward_discount_str": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "same_city": {
+                "type": "boolean"
+              },
+              "scene_url": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "section_id": {
+                "type": "long"
+              },
+              "section_name": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "self_desc": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "self_labels": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "send_word": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "setting_price": {
+                "type": "long"
+              },
+              "sex": {
+                "type": "long"
+              },
+              "simuid": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "star_sum": {
+                "type": "long"
+              },
+              "star_user_count": {
+                "type": "long"
+              },
+              "start_work_year": {
+                "type": "long"
+              },
+              "status": {
+                "type": "long"
+              },
+              "tag_nodes": {
+                "properties": {
+                  "id": {
+                    "type": "long"
+                  },
+                  "name": {
+                    "type": "text",
+                    "fields": {
+                      "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      }
+                    }
+                  },
+                  "show_type": {
+                    "type": "long"
+                  },
+                  "type": {
+                    "type": "long"
+                  }
+                }
+              },
+              "tag_references": {
+                "properties": {
+                  "content": {
+                    "type": "text",
+                    "fields": {
+                      "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      }
+                    }
+                  },
+                  "id": {
+                    "type": "long"
+                  }
+                }
+              },
+              "tags": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "team_id": {
+                "type": "long"
+              },
+              "tencent_price": {
+                "type": "long"
+              },
+              "top_price": {
+                "type": "long"
+              },
+              "user_id": {
+                "type": "long"
+              },
+              "vip": {
+                "type": "boolean"
+              },
+              "vipcard": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "volunteer": {
+                "type": "boolean"
+              },
+              "volunteer_reward_base": {
+                "type": "long"
+              },
+              "volunteer_reward_discount_str": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "volunteer_stock": {
+                "type": "long"
+              },
+              "waiting_reply": {
+                "type": "long"
+              },
+              "weight": {
+                "type": "long"
+              }
+            }
+          },
+          "id": {
+            "type": "long"
+          },
+          "location": {
+            "type": "long"
+          },
+          "location_str": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "lock_avatar": {
+            "type": "boolean"
+          },
+          "nickname": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "sex": {
+            "type": "long"
+          },
+          "simuid": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
