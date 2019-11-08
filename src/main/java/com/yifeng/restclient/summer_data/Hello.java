@@ -10,7 +10,16 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
+import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.search.SearchScrollRequest;
+import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.Scroll;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,15 +37,25 @@ public class Hello {
 
     private static final String DOCTORS_BASE_URL = "https://ask.dxy.com/view/i/sectiongroup/member";
 
-    public static final Logger LOG = LoggerFactory.getLogger(Hello.class);
+    private static final String COMMENT_BASE_URL = "https://ask.dxy.com/view/i/question/comments";
 
-    public static final String ES_HOST = "172.16.150.123";
+    private static final String COMMENT_POSTFIX = "comment";
 
-    public static final Integer ES_PORT = 9200;
+    private static final Logger LOG = LoggerFactory.getLogger(Hello.class);
 
-    public static final String ES_HTTP_SCHEMA = "http";
+    private static final String ES_HOST = "172.16.150.123";
 
-    public static final int ITEMS_PER_PAGE = 100;
+    private static final Integer ES_PORT = 9200;
+
+    private static final String ES_HTTP_SCHEMA = "http";
+
+    private static final int ITEMS_PER_PAGE = 100;
+
+    private static final String DEFAULT_INDEX = "yifeng-toy";
+
+    private static final String DOCTOR_TYPE = "doctor";
+
+    private static final String COMMENT_TYPE = "comment";
 
     public static List<Integer> getOfficeIds() {
         List<Integer> res = new ArrayList<>();
@@ -65,7 +84,7 @@ public class Hello {
         List<JSONObject> res = new ArrayList<>();
         try (CloseableHttpClient client = HttpClientFactory.createAcceptSelfSignedCertificateClient()) {
             for (int officeId : officeIds) {
-                int totalPages = getTotalPages(officeId);
+                int totalPages = getOfficeTotalPages(officeId);
                 for (int pageIndex = 1; pageIndex <= totalPages; ++pageIndex) {
                     URIBuilder builder = new URIBuilder(DOCTORS_BASE_URL);
                     builder.setParameter("page_index", String.valueOf(pageIndex))
@@ -82,7 +101,7 @@ public class Hello {
                     JSONObject resJson = JSONObject.parseObject(EntityUtils.toString(response.getEntity(), "utf-8"));
                     JSONArray items = resJson.getJSONObject("data").getJSONArray("items");
                     for (int i = 0; i < items.size(); ++i) {
-                        sinkToEs(items.getJSONObject(i));
+                        sinkTargetToEs(items.getJSONObject(i), DOCTOR_TYPE);
                     }
                     response.close();
                 }
@@ -93,7 +112,7 @@ public class Hello {
         return res;
     }
 
-    private static int getTotalPages(int officeId) {
+    private static int getOfficeTotalPages(int officeId) {
         try (CloseableHttpClient client = HttpClientFactory.createAcceptSelfSignedCertificateClient()) {
             URIBuilder builder = new URIBuilder(DOCTORS_BASE_URL);
             builder.setParameter("page_index", String.valueOf(1))
@@ -115,19 +134,101 @@ public class Hello {
         return -1;
     }
 
-    public static void sinkToEs(JSONObject target) {
+    private static int getCommentTotalPages(int doctorId) {
+        try (CloseableHttpClient client = HttpClientFactory.createAcceptSelfSignedCertificateClient()) {
+            URIBuilder builder = new URIBuilder(COMMENT_BASE_URL);
+            builder.setParameter("page_index", String.valueOf(1))
+                    .setParameter("items_per_page", String.valueOf(ITEMS_PER_PAGE * 100))
+                    .setParameter("doctor_user_id", String.valueOf(doctorId));
+            HttpGet request = new HttpGet(builder.build());
+            request.setHeader("Content-Type", "application/json; charset=UTF-8");
+            CloseableHttpResponse response = client.execute(request);
+            JSONObject resJson = JSONObject.parseObject(EntityUtils.toString(response.getEntity(), "utf-8"));
+            response.close();
+            return resJson.getJSONObject("data").getInteger("total_pages");
+        } catch (URISyntaxException | IOException e) {
+            LOG.error(e.toString());
+        }
+        return -1;
+    }
+
+    public static void sinkTargetToEs(JSONObject target, String type) {
         try (ElasticsearchConnection connection = new ElasticsearchConnection()) {
             connection.connect(ES_HOST, ES_PORT, ES_HTTP_SCHEMA);
             connection.client().index(new IndexRequest()
-                    .index("yifeng-toy")
-                    .type("doctor")
+                    .index(DEFAULT_INDEX)
+                    .type(type)
                     .source(JSON.toJSONString(target)));
         } catch (IOException e) {
             LOG.error(e.toString());
         }
     }
 
+    public static void bulkSinkTargetToEs(JSONArray items, String type) {
+        try (ElasticsearchConnection connection = new ElasticsearchConnection()) {
+            connection.connect(ES_HOST, ES_PORT, ES_HTTP_SCHEMA);
+            BulkRequest bulkRequest = new BulkRequest();
+            for (int i = 0; i < items.size(); ++i) {
+                bulkRequest.add(new IndexRequest(DEFAULT_INDEX, type).source(JSON.toJSONString(items.getJSONObject(i)))).timeout(TimeValue.timeValueMinutes(100L));
+            }
+            connection.client().bulk(bulkRequest);
+        } catch (IOException e) {
+            LOG.error(e.toString());
+        }
+    }
+
+    // get comment
+    public static List<Integer> getDoctorIds() {
+        List<Integer> res = new ArrayList<>();
+        try (ElasticsearchConnection connection = new ElasticsearchConnection()) {
+            connection.connect(ES_HOST, ES_PORT, ES_HTTP_SCHEMA);
+            SearchResponse response = connection.client().search(new SearchRequest("yifeng-toy")
+                .types("doctor")
+                .source(new SearchSourceBuilder()
+                    .size(1000)
+                    .query(QueryBuilders.matchAllQuery()))
+                    .scroll(new Scroll(TimeValue.timeValueSeconds(10L))));
+            while (response.getHits().getHits().length != 0) {
+                for (SearchHit hit : response.getHits().getHits()) {
+                    res.add((int) hit.getSourceAsMap().get("id"));
+                }
+                response = connection.client().searchScroll(new SearchScrollRequest(response.getScrollId())
+                        .scroll(new Scroll(TimeValue.timeValueSeconds(10L))));
+            }
+        } catch (IOException e) {
+            LOG.error(e.toString());
+        }
+        return res;
+    }
+
+    public static void getAllComments(List<Integer> doctorIds) {
+        long count = 0L;
+        try (CloseableHttpClient client = HttpClientFactory.createAcceptSelfSignedCertificateClient()) {
+            for (int doctorId : doctorIds) {
+                int totalPages = getCommentTotalPages(doctorId);
+                for (int pageIndex = 1; pageIndex <= totalPages; ++pageIndex) {
+                    URIBuilder builder = new URIBuilder(COMMENT_BASE_URL);
+                    builder.setParameter("page_index", String.valueOf(pageIndex))
+                            .setParameter("items_per_page", String.valueOf(ITEMS_PER_PAGE * 100))
+                            .setParameter("doctor_user_id", String.valueOf(doctorId));
+                    HttpGet request = new HttpGet(builder.build());
+                    request.setHeader("Content-Type", "application/json; charset=UTF-8");
+                    CloseableHttpResponse response = client.execute(request);
+                    JSONObject resJson = JSONObject.parseObject(EntityUtils.toString(response.getEntity(), "utf-8"));
+                    JSONArray items = resJson.getJSONObject("data").getJSONArray("items");
+                    bulkSinkTargetToEs(items, COMMENT_TYPE);
+                    count += items.size();
+                    LOG.info("has written {} comments to es", count);
+                    response.close();
+                }
+            }
+        } catch (URISyntaxException | IOException e) {
+            LOG.error(e.toString());
+        }
+    }
+
     public static void main(String[] args) throws Exception {
-        getAllDoctors(getOfficeIds());
+//        getAllDoctors(getOfficeIds());
+        getAllComments(getDoctorIds());
     }
 }
