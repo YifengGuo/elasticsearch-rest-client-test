@@ -20,6 +20,11 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.Scroll;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.jsoup.HttpStatusException;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,6 +44,8 @@ public class Hello {
 
     private static final String COMMENT_BASE_URL = "https://ask.dxy.com/view/i/question/comments";
 
+    private static final String HOSPITAL_BASE_URL = "https://dxy.com/health/hospital/";
+
     private static final String COMMENT_POSTFIX = "comment";
 
     private static final Logger LOG = LoggerFactory.getLogger(Hello.class);
@@ -56,6 +63,10 @@ public class Hello {
     private static final String DOCTOR_TYPE = "doctor";
 
     private static final String COMMENT_TYPE = "comment";
+
+    private static final String HOSPITAL_TYPE = "hospital";
+
+    private static long index = 109000L;
 
     public static List<Integer> getOfficeIds() {
         List<Integer> res = new ArrayList<>();
@@ -227,8 +238,52 @@ public class Hello {
         }
     }
 
+    public static void getAllHospitals() {
+        JSONArray arr = new JSONArray();
+        try {
+            while (index < 230000L) {
+                Document doc = Jsoup.connect(HOSPITAL_BASE_URL + index)
+                        .userAgent("Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:25.0) Gecko/20100101 Firefox/25.0")
+                        .referrer("http://www.baidu.com")
+                        .ignoreHttpErrors(true)
+                        .get();
+                if ("出错啦！！！".equals(doc.getElementsByClass("title").text())) continue;
+                String grade  = doc.getElementsByClass("grade").text();
+                if (grade == null || "".equals(grade)) {
+                    grade = "未知等级";
+                } else {
+                    grade = grade.substring(1, grade.length() - 1);
+                }
+                String name = doc.getElementsByClass("head").text();
+                JSONObject obj = new JSONObject();
+                obj.put("id", index);
+                obj.put("name", name);
+                obj.put("grade", grade);
+                arr.add(obj);
+                LOG.info("index:{}", index);
+                if (++index % 1000 == 0) {
+                    LOG.info("has written {} hospitals to es", index);
+                    bulkSinkTargetToEs(arr, HOSPITAL_TYPE);
+                    arr.clear();
+                }
+            }
+        } catch (IOException e) {
+            LOG.error(e.toString());
+            index = index / 1000 * 1000;
+            getAllHospitals();
+        }
+    }
+
     public static void main(String[] args) throws Exception {
 //        getAllDoctors(getOfficeIds());
-        getAllComments(getDoctorIds());
+//        getAllComments(getDoctorIds());
+        getAllHospitals();
+
+//        Document doc = Jsoup.connect(HOSPITAL_BASE_URL + 6300)
+//                .userAgent("Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:25.0) Gecko/20100101 Firefox/25.0")
+//                .referrer("http://www.baidu.com")
+//                .ignoreHttpErrors(true)
+//                .get();
+//        System.out.println(doc);
     }
 }
