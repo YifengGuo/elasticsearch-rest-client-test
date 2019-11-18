@@ -32,6 +32,10 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Created by guoyifeng on 11/7/19
@@ -67,6 +71,8 @@ public class Hello {
     private static final String HOSPITAL_TYPE = "hospital";
 
     private static long index = 109000L;
+
+    private static AtomicLong commentCount = new AtomicLong(0L);
 
     public static List<Integer> getOfficeIds() {
         List<Integer> res = new ArrayList<>();
@@ -175,12 +181,16 @@ public class Hello {
         }
     }
 
-    public static void bulkSinkTargetToEs(JSONArray items, String type) {
+    public static void bulkSinkTargetToEs(JSONArray items, String type, String... doctorId) {
         try (ElasticsearchConnection connection = new ElasticsearchConnection()) {
             connection.connect(ES_HOST, ES_PORT, ES_HTTP_SCHEMA);
             BulkRequest bulkRequest = new BulkRequest();
             for (int i = 0; i < items.size(); ++i) {
-                bulkRequest.add(new IndexRequest(DEFAULT_INDEX, type).source(JSON.toJSONString(items.getJSONObject(i)))).timeout(TimeValue.timeValueMinutes(100L));
+                JSONObject curr = items.getJSONObject(i);
+                if ("comment".equals(type)) {
+                    curr.put("doctor_user_id", Integer.valueOf(doctorId[0]));
+                }
+                bulkRequest.add(new IndexRequest(DEFAULT_INDEX, type).source(JSON.toJSONString(curr)).timeout(TimeValue.timeValueMinutes(100L)));
             }
             connection.client().bulk(bulkRequest);
         } catch (IOException e) {
@@ -227,7 +237,7 @@ public class Hello {
                     CloseableHttpResponse response = client.execute(request);
                     JSONObject resJson = JSONObject.parseObject(EntityUtils.toString(response.getEntity(), "utf-8"));
                     JSONArray items = resJson.getJSONObject("data").getJSONArray("items");
-                    bulkSinkTargetToEs(items, COMMENT_TYPE);
+                    bulkSinkTargetToEs(items, COMMENT_TYPE, String.valueOf(doctorId));
                     count += items.size();
                     LOG.info("has written {} comments to es", count);
                     response.close();
@@ -235,6 +245,47 @@ public class Hello {
             }
         } catch (URISyntaxException | IOException e) {
             LOG.error(e.toString());
+        }
+    }
+
+    public static void getAllCommentsParallel(List<Integer> doctorIds) {
+        ExecutorService pool = Executors.newFixedThreadPool(4);
+        ConcurrentLinkedQueue<Integer> queue = new ConcurrentLinkedQueue(doctorIds);
+        while (!queue.isEmpty()) {
+            pool.execute(new CommentRunningTask(queue.poll()));
+        }
+    }
+
+    private static class CommentRunningTask implements Runnable {
+
+        private int doctorId;
+
+        public CommentRunningTask(int doctorId) {
+            this.doctorId = doctorId;
+        }
+
+        @Override
+        public void run() {
+            try (CloseableHttpClient client = HttpClientFactory.createAcceptSelfSignedCertificateClient()) {
+                int totalPages = getCommentTotalPages(doctorId);
+                for (int pageIndex = 1; pageIndex <= totalPages; ++pageIndex) {
+                    URIBuilder builder = new URIBuilder(COMMENT_BASE_URL);
+                    builder.setParameter("page_index", String.valueOf(pageIndex))
+                            .setParameter("items_per_page", String.valueOf(ITEMS_PER_PAGE * 100))
+                            .setParameter("doctor_user_id", String.valueOf(doctorId));
+                    HttpGet request = new HttpGet(builder.build());
+                    request.setHeader("Content-Type", "application/json; charset=UTF-8");
+                    CloseableHttpResponse response = client.execute(request);
+                    JSONObject resJson = JSONObject.parseObject(EntityUtils.toString(response.getEntity(), "utf-8"));
+                    JSONArray items = resJson.getJSONObject("data").getJSONArray("items");
+                    bulkSinkTargetToEs(items, COMMENT_TYPE, String.valueOf(doctorId));
+                    commentCount.addAndGet(items.size());
+                    LOG.info("{} has written {} comments to es", Thread.currentThread().getName(), commentCount.get());
+                    response.close();
+                }
+            } catch (Exception e) {
+                LOG.error(e.toString());
+            }
         }
     }
 
@@ -269,7 +320,7 @@ public class Hello {
             }
         } catch (IOException e) {
             LOG.error(e.toString());
-            index = index / 1000 * 1000;
+            index = index / 1000 * 1000; // reset index to last offset before failure
             getAllHospitals();
         }
     }
@@ -277,13 +328,7 @@ public class Hello {
     public static void main(String[] args) throws Exception {
 //        getAllDoctors(getOfficeIds());
 //        getAllComments(getDoctorIds());
-        getAllHospitals();
-
-//        Document doc = Jsoup.connect(HOSPITAL_BASE_URL + 6300)
-//                .userAgent("Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:25.0) Gecko/20100101 Firefox/25.0")
-//                .referrer("http://www.baidu.com")
-//                .ignoreHttpErrors(true)
-//                .get();
-//        System.out.println(doc);
+        getAllCommentsParallel(getDoctorIds());
+//        getAllHospitals();
     }
 }
