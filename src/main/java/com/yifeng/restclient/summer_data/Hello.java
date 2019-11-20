@@ -254,7 +254,7 @@ public class Hello {
         while (!queue.isEmpty()) {
             pool.execute(new CommentRunningTask(queue.poll()));
         }
-        pool.shutdownNow();
+        pool.shutdown();
     }
 
     private static class CommentRunningTask implements Runnable {
