@@ -84,7 +84,7 @@ public class ElasticsearchHighLevelAPITest {
     @Before
     public void initial() {
         lowClient =  RestClient.builder(
-                new HttpHost("172.16.150.189", 29200, "http")).build();
+                new HttpHost("172.16.150.184", 9200, "http")).build();
         restClient = new RestHighLevelClient(lowClient);
     }
 
@@ -580,6 +580,27 @@ public class ElasticsearchHighLevelAPITest {
     public void testQueryStringQuery() throws Exception {
         QueryBuilder qb = QueryBuilders.queryStringQuery("_exists_:scenarios_top3");
         System.out.println(qb);
+    }
+
+    @Test
+    public void testArrayElementsQuery() throws Exception {
+        List<Long> target = Arrays.asList(168430090L, 168430180L);
+        BoolQueryBuilder qb = QueryBuilders.boolQuery()
+                .must(QueryBuilders.termQuery("category_id", "75aa33dc-943a-4d2c-9799-6c51725137eb"))
+                .must(QueryBuilders.termQuery("type", "IP_RANGE"))
+                .must(QueryBuilders.termQuery("target", target.get(0)))
+                .must(QueryBuilders.termQuery("target", target.get(1)));
+        SearchResponse response = restClient.search(new SearchRequest("ueba_settings")
+                .types(BLACKLIST_TYPE)
+                .source(new SearchSourceBuilder()
+                        .query(qb)
+                        .size(1000)));
+        System.out.println(response.getHits().getHits()[0].getSourceAsMap());
+    }
+
+    @Test
+    public void t() {
+        LOG.info("1");
     }
 
     @After
